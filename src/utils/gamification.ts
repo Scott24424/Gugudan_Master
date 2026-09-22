@@ -42,3 +42,32 @@ export function getCharacterStage(level: number): string {
   }
   return 'egg';
 }
+
+/**
+ * Calculates updated level and remaining experience given starting exp, level, and added exp.
+ * Level N requires (N * 100) experience points to advance to Level N+1.
+ * Any leftover exp carries over to subsequent levels.
+ *
+ * @param currentExp - Starting experience points within current level
+ * @param currentLevel - Starting player level (minimum 1)
+ * @param addedExp - Additional experience points gained
+ * @returns An object containing the new exp and level
+ */
+export function calculateNextLevelAndExp(
+  currentExp: number,
+  currentLevel: number,
+  addedExp: number
+): { exp: number; level: number } {
+  const safeExp = Number.isFinite(currentExp) ? Math.max(0, Math.floor(currentExp)) : 0;
+  const safeAdded = Number.isFinite(addedExp) ? Math.max(0, Math.floor(addedExp)) : 0;
+  let level = Number.isFinite(currentLevel) && currentLevel >= 1 ? Math.floor(currentLevel) : 1;
+  let exp = safeExp + safeAdded;
+
+  while (exp >= level * 100) {
+    exp -= level * 100;
+    level += 1;
+  }
+
+  return { exp, level };
+}
+

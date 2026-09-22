@@ -1,4 +1,4 @@
-import { calculateEarnedExp, getCharacterStage } from '../../src/utils/gamification';
+import { calculateEarnedExp, calculateNextLevelAndExp, getCharacterStage } from '../../src/utils/gamification';
 
 describe('Gamification Logic', () => {
   describe('calculateEarnedExp', () => {
@@ -40,4 +40,38 @@ describe('Gamification Logic', () => {
       expect(getCharacterStage(99)).toBe('dragon');
     });
   });
+
+  describe('calculateNextLevelAndExp', () => {
+    it('returns unchanged level and exp when addedExp is 0', () => {
+      expect(calculateNextLevelAndExp(40, 1, 0)).toEqual({ exp: 40, level: 1 });
+    });
+
+    it('accumulates exp without level up when below requirement', () => {
+      expect(calculateNextLevelAndExp(30, 1, 40)).toEqual({ exp: 70, level: 1 });
+    });
+
+    it('levels up to Level 2 exactly when hitting 100 exp for Level 1', () => {
+      expect(calculateNextLevelAndExp(0, 1, 100)).toEqual({ exp: 0, level: 2 });
+    });
+
+    it('carries over surplus exp when leveling up', () => {
+      // 80 + 40 = 120 -> level up to 2, 20 exp remaining
+      expect(calculateNextLevelAndExp(80, 1, 40)).toEqual({ exp: 20, level: 2 });
+    });
+
+    it('handles multi-level jump correctly', () => {
+      // Level 1 -> requires 100
+      // Level 2 -> requires 200
+      // 350 exp starting from 0, level 1:
+      // 350 - 100 = 250 (Lv 2)
+      // 250 - 200 = 50 (Lv 3)
+      expect(calculateNextLevelAndExp(0, 1, 350)).toEqual({ exp: 50, level: 3 });
+    });
+
+    it('handles negative or invalid inputs gracefully', () => {
+      expect(calculateNextLevelAndExp(-10, 0, 50)).toEqual({ exp: 50, level: 1 });
+      expect(calculateNextLevelAndExp(NaN, NaN, 20)).toEqual({ exp: 20, level: 1 });
+    });
+  });
 });
+

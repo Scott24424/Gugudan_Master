@@ -1,9 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { generateProblem } from '../utils/mathGenerator';
-import { calculateEarnedExp, getCharacterStage } from '../utils/gamification';
+import { calculateEarnedExp, calculateNextLevelAndExp, getCharacterStage } from '../utils/gamification';
 import ResultScreen, { HistoryItem } from './ResultScreen';
+import { useAuth } from '../context/AuthContext';
+import { insertSession, upsertProfile } from '../lib/api';
 
 export interface QuizScreenProps {
   category: string;
@@ -11,17 +13,42 @@ export interface QuizScreenProps {
 }
 
 export default function QuizScreen({ category, onBack }: QuizScreenProps) {
+  const { user, profile, updateProfileState } = useAuth();
   const [problem, setProblem] = useState({ expression: '', answer: 0 });
   const [input, setInput] = useState('');
-  const [exp, setExp] = useState(0);
   const [sessionExp, setSessionExp] = useState(0);
-  const [level, setLevel] = useState(1);
   const [feedback, setFeedback] = useState<'idle' | 'correct' | 'wrong'>('idle');
   const [questionCount, setQuestionCount] = useState(1);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isFinished, setIsFinished] = useState(false);
+  const hasSavedRef = useRef(false);
+
+  const [sessionBaseStats, setSessionBaseStats] = useState({
+    exp: profile?.exp ?? 0,
+    level: profile?.level ?? 1,
+  });
+
+  // Keep session base stats updated if profile loads after mount before any questions are answered
+  useEffect(() => {
+    if (sessionExp === 0 && questionCount === 1 && profile) {
+      setSessionBaseStats({
+        exp: profile.exp,
+        level: profile.level,
+      });
+    }
+  }, [profile, sessionExp, questionCount]);
+
+  // Derive dynamic level and exp from session base stats + sessionExp
+  const displayStats = calculateNextLevelAndExp(
+    sessionBaseStats.exp,
+    sessionBaseStats.level,
+    sessionExp
+  );
+  const level = displayStats.level;
+  const exp = displayStats.exp;
 
   const resetQuiz = () => {
+    hasSavedRef.current = false;
     setQuestionCount(1);
     setHistory([]);
     setIsFinished(false);
@@ -29,11 +56,44 @@ export default function QuizScreen({ category, onBack }: QuizScreenProps) {
     setInput('');
     setFeedback('idle');
     setProblem(generateProblem(category));
+    setSessionBaseStats({
+      exp: profile?.exp ?? 0,
+      level: profile?.level ?? 1,
+    });
   };
 
   useEffect(() => {
     resetQuiz();
   }, [category]);
+
+  // Save session and update profile to Supabase when 10 questions finish
+  useEffect(() => {
+    if (!isFinished || hasSavedRef.current || !user) return;
+    hasSavedRef.current = true;
+
+    const saveSessionData = async () => {
+      const totalQuestions = 10;
+      const correctCount = history.filter(h => h.isCorrect).length;
+
+      // 1. Insert session record
+      await insertSession(user.id, category, totalQuestions, correctCount, sessionExp);
+
+      // 2. Calculate cumulative level and exp based on starting profile + sessionExp
+      const nextStats = calculateNextLevelAndExp(
+        sessionBaseStats.exp,
+        sessionBaseStats.level,
+        sessionExp
+      );
+
+      // 3. Upsert profile in Supabase
+      await upsertProfile(user.id, nextStats.exp, nextStats.level);
+
+      // 4. Update global AuthContext state so Home Dashboard updates immediately
+      updateProfileState(nextStats.exp, nextStats.level);
+    };
+
+    saveSessionData();
+  }, [isFinished, user, category, history, sessionExp, sessionBaseStats, updateProfileState]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,13 +114,7 @@ export default function QuizScreen({ category, onBack }: QuizScreenProps) {
     if (isCorrect) {
       setFeedback('correct');
       const earned = calculateEarnedExp(category);
-      const newExp = exp + earned;
-      setExp(newExp);
       setSessionExp(prev => prev + earned);
-      if (newExp >= level * 100) {
-        setLevel(prev => prev + 1);
-        setExp(0);
-      }
     } else {
       setFeedback('wrong');
     }
@@ -110,7 +164,7 @@ export default function QuizScreen({ category, onBack }: QuizScreenProps) {
         <motion.div
           className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 absolute left-0 top-0"
           initial={{ width: 0 }}
-          animate={{ width: `${(exp / (level * 100)) * 100}%` }}
+          animate={{ width: `${Math.min(100, Math.max(0, (exp / (level * 100)) * 100))}%` }}
           transition={{ type: "spring", stiffness: 50 }}
         />
       </div>

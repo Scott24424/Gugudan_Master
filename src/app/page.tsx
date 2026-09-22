@@ -2,11 +2,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
+import { getCharacterStage } from '../utils/gamification';
 import QuizScreen from '../components/QuizScreen';
 
 export default function Home() {
   const router = useRouter();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, profile, signOut } = useAuth();
   const [category, setCategory] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,6 +30,16 @@ export default function Home() {
   if (!user) {
     return null;
   }
+
+  const level = profile?.level ?? 1;
+  const exp = profile?.exp ?? 0;
+  const stage = getCharacterStage(level);
+  const stageEmojis: Record<string, string> = {
+    egg: '🥚',
+    baby_monster: '🐣',
+    cool_monster: '🦕',
+    dragon: '🐉',
+  };
 
   if (category) {
     return (
@@ -63,6 +74,33 @@ export default function Home() {
         >
           로그아웃
         </button>
+      </div>
+
+      {/* Character Level and EXP Progress Bar Header */}
+      <div className="max-w-md mx-auto mb-6 p-5 bg-white rounded-3xl shadow-lg border-2 border-indigo-100">
+        <div className="flex justify-between items-center mb-3">
+          <div>
+            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase tracking-wider">
+              Level {level}
+            </span>
+            <div className="text-base font-black text-slate-800 mt-1">내 캐릭터</div>
+          </div>
+          <div className="text-5xl select-none">{stageEmojis[stage] || '🥚'}</div>
+          <div className="text-right">
+            <span className="text-xs text-slate-400 font-semibold block">경험치</span>
+            <span className="text-sm font-bold text-orange-500">
+              EXP {exp} / {level * 100}
+            </span>
+          </div>
+        </div>
+
+        {/* EXP Progress Bar */}
+        <div className="h-3.5 w-full bg-slate-100 rounded-full overflow-hidden relative">
+          <div
+            className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-500 rounded-full"
+            style={{ width: `${Math.min(100, Math.max(0, (exp / (level * 100)) * 100))}%` }}
+          />
+        </div>
       </div>
 
       <h1 className="text-4xl font-black text-center text-indigo-900 mb-2 drop-shadow-sm">신나는 구구단 마스터</h1>
