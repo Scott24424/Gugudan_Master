@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { generateProblem } from '../utils/mathGenerator';
 import { calculateEarnedExp, getCharacterStage } from '../utils/gamification';
 
-export default function QuizScreen() {
+export default function QuizScreen({ category }: { category: string }) {
   const [problem, setProblem] = useState({ expression: '', answer: 0 });
   const [input, setInput] = useState('');
   const [exp, setExp] = useState(0);
@@ -12,14 +12,14 @@ export default function QuizScreen() {
   const [feedback, setFeedback] = useState<'idle' | 'correct' | 'wrong'>('idle');
 
   useEffect(() => {
-    setProblem(generateProblem('gugudan'));
-  }, []);
+    setProblem(generateProblem(category));
+  }, [category]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (parseInt(input) === problem.answer) {
       setFeedback('correct');
-      const earned = calculateEarnedExp('gugudan');
+      const earned = calculateEarnedExp(category);
       const newExp = exp + earned;
       setExp(newExp);
       if (newExp >= level * 100) {
@@ -27,7 +27,7 @@ export default function QuizScreen() {
         setExp(0);
       }
       setTimeout(() => {
-        setProblem(generateProblem('gugudan'));
+        setProblem(generateProblem(category));
         setInput('');
         setFeedback('idle');
       }, 1000);
