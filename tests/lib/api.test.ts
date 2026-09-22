@@ -1,4 +1,4 @@
-import { fetchProfile, upsertProfile, insertSession } from '../../src/lib/api';
+import { fetchProfile, upsertProfile, insertSession, fetchUserSessions } from '../../src/lib/api';
 import { supabase } from '../../src/lib/supabaseClient';
 
 jest.mock('../../src/lib/supabaseClient', () => ({
@@ -129,4 +129,58 @@ describe('Supabase API client', () => {
       errorSpy.mockRestore();
     });
   });
+
+  describe('fetchUserSessions', () => {
+    it('returns list of learning sessions ordered by created_at desc', async () => {
+      const mockSessions = [
+        {
+          id: 'sess-1',
+          category: 'gugudan',
+          total_questions: 10,
+          correct_count: 10,
+          earned_exp: 100,
+          created_at: '2026-09-22T10:00:00Z',
+        },
+        {
+          id: 'sess-2',
+          category: '2x1',
+          total_questions: 10,
+          correct_count: 8,
+          earned_exp: 160,
+          created_at: '2026-09-21T10:00:00Z',
+        },
+      ];
+
+      const orderMock = jest.fn().mockResolvedValue({ data: mockSessions, error: null });
+      const eqMock = jest.fn().mockReturnValue({ order: orderMock });
+      const selectMock = jest.fn().mockReturnValue({ eq: eqMock });
+      (supabase.from as jest.Mock).mockReturnValue({ select: selectMock });
+
+      const sessions = await fetchUserSessions('user-123');
+
+      expect(supabase.from).toHaveBeenCalledWith('learning_sessions');
+      expect(selectMock).toHaveBeenCalledWith('id, category, total_questions, correct_count, earned_exp, created_at');
+      expect(eqMock).toHaveBeenCalledWith('user_id', 'user-123');
+      expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(sessions).toEqual(mockSessions);
+    });
+
+    it('returns empty array and logs error on query failure', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const orderMock = jest.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'Timeout' },
+      });
+      const eqMock = jest.fn().mockReturnValue({ order: orderMock });
+      const selectMock = jest.fn().mockReturnValue({ eq: eqMock });
+      (supabase.from as jest.Mock).mockReturnValue({ select: selectMock });
+
+      const sessions = await fetchUserSessions('user-123');
+
+      expect(sessions).toEqual([]);
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+  });
 });
+

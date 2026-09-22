@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { getCharacterStage } from '../utils/gamification';
 import QuizScreen from '../components/QuizScreen';
@@ -119,9 +120,12 @@ export default function Home() {
       </div>
       
       <div className="max-w-md mx-auto mt-12 text-center">
-        <button className="text-indigo-600 font-bold hover:underline text-lg">
+        <Link
+          href="/history"
+          className="text-indigo-600 font-bold hover:underline text-lg inline-block transition-colors"
+        >
           🏆 내 성취도 보러가기
-        </button>
+        </Link>
       </div>
     </main>
   );

@@ -110,3 +110,40 @@ export async function insertSession(
     return false;
   }
 }
+
+export interface LearningSession {
+  id: string;
+  user_id?: string;
+  category: string;
+  total_questions: number;
+  correct_count: number;
+  earned_exp: number;
+  created_at: string;
+}
+
+/**
+ * Fetches learning sessions for a user, ordered from most recent to oldest.
+ *
+ * @param userId - Supabase auth user UUID
+ * @returns Array of LearningSession objects
+ */
+export async function fetchUserSessions(userId: string): Promise<LearningSession[]> {
+  try {
+    const { data, error } = await supabase
+      .from('learning_sessions')
+      .select('id, category, total_questions, correct_count, earned_exp, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching learning sessions from Supabase:', error.message);
+      return [];
+    }
+
+    return (data as LearningSession[]) ?? [];
+  } catch (err: unknown) {
+    console.error('Unexpected error in fetchUserSessions:', err);
+    return [];
+  }
+}
+
