@@ -38,7 +38,7 @@ export default function Home() {
             ← 뒤로 가기
           </button>
         </div>
-        <QuizScreen category={category} />
+        <QuizScreen category={category} onBack={() => setCategory(null)} />
       </main>
     );
   }
