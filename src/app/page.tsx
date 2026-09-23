@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { getCharacterStage } from '../utils/gamification';
 import QuizScreen from '../components/QuizScreen';
+import VerticalQuizScreen from '../components/VerticalQuizScreen';
 
 export default function Home() {
   const router = useRouter();
@@ -41,15 +42,24 @@ export default function Home() {
   };
 
   if (category) {
+    if (category === 'gugudan') {
+      return (
+        <main className="min-h-screen bg-gradient-to-b from-sky-50 to-indigo-50 py-10 px-4">
+          <div className="max-w-md mx-auto mb-4">
+            <button onClick={() => setCategory(null)} className="text-sky-600 font-bold hover:underline text-lg">
+              ← 뒤로 가기
+            </button>
+          </div>
+          <QuizScreen category={category} onBack={() => setCategory(null)} />
+        </main>
+      );
+    }
+
     return (
-      <main className="min-h-screen bg-gradient-to-b from-sky-50 to-indigo-50 py-10 px-4">
-        <div className="max-w-md mx-auto mb-4">
-          <button onClick={() => setCategory(null)} className="text-sky-600 font-bold hover:underline text-lg">
-            ← 뒤로 가기
-          </button>
-        </div>
-        <QuizScreen category={category} onBack={() => setCategory(null)} />
-      </main>
+      <VerticalQuizScreen
+        category={category as '2x1' | '3x1' | '2x2'}
+        onBack={() => setCategory(null)}
+      />
     );
   }
 
