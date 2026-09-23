@@ -22,6 +22,17 @@ export default function QuizScreen({ category, onBack }: QuizScreenProps) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isFinished, setIsFinished] = useState(false);
   const hasSavedRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (feedback === 'idle' && !isFinished) {
+      inputRef.current?.focus();
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback, questionCount, isFinished]);
 
   const [sessionBaseStats, setSessionBaseStats] = useState({
     exp: profile?.exp ?? 0,
@@ -201,6 +212,7 @@ export default function QuizScreen({ category, onBack }: QuizScreenProps) {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 z-10 relative">
         <input
+          ref={inputRef}
           type="number"
           value={input}
           onChange={e => setInput(e.target.value)}
