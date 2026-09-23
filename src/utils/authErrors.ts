@@ -14,6 +14,9 @@ export function getKoreanErrorMessage(errorMsg: string): string {
   if (errorMsg.includes('Email not confirmed')) {
     return '이메일 인증이 완료되지 않았습니다. 메일함을 확인해 주세요.';
   }
+  if (errorMsg.includes('Email signups are disabled')) {
+    return '이메일 회원가입이 비활성화되어 있습니다. Supabase 콘솔(Authentication -> Providers -> Email)에서 신규 가입(Allow new users to sign up)을 켜주세요.';
+  }
   if (errorMsg.toLowerCase().includes('network') || errorMsg.toLowerCase().includes('fetch')) {
     return '네트워크 연결 상태를 확인해 주세요.';
   }

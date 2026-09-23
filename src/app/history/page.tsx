@@ -48,7 +48,7 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 
@@ -74,19 +74,17 @@ export default function HistoryPage() {
     }
   }, [user, authLoading, router]);
 
-  if (authLoading || (user && dataLoading)) {
+  if (authLoading || (user && dataLoading) || !user) {
     return (
       <main className="min-h-screen bg-gradient-to-b from-sky-50 to-indigo-50 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-indigo-900 font-bold text-sm">기록 불러오는 중...</p>
+          <p className="text-indigo-900 font-bold text-sm">
+            {authLoading || !user ? '로그인 확인 중...' : '기록 불러오는 중...'}
+          </p>
         </div>
       </main>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (
