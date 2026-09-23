@@ -39,6 +39,30 @@ describe('verticalMathEngine', () => {
       const stepValues = plan.steps.map((s) => s.expectedValue);
       expect(stepValues).toEqual([3, 2, 2, 7, 8, 6, 2, 1, 5, 9]);
     });
+
+    test('92 x 27 produces exact addition sequence: 4+0=4, 4+4=8, 6+8=carry 1, 4, 1+carry 1=2', () => {
+      const plan = generateVerticalProblem('2x2', { top: 92, bottom: 27 });
+      expect(plan.answer).toBe(2484);
+
+      // Row 1: 92 * 7 = 644 (carry 1, ones 4, hundreds 6, tens 4)
+      // Row 2: 92 * 2 = 184 (tens 4, thousands 1, hundreds 8)
+      // Row 3: 644 + 1840 = 2484:
+      //   4 + 0 = 4 (sum_ones)
+      //   4 + 4 = 8 (sum_tens)
+      //   6 + 8 = 14 (add_carry_thousands 1, sum_hundreds 4)
+      //   1 + 1 = 2 (sum_thousands 2)
+      const stepValues = plan.steps.map((s) => s.expectedValue);
+      expect(stepValues).toEqual([1, 4, 6, 4, 4, 1, 8, 4, 8, 1, 4, 2]);
+
+      const sumSteps = plan.steps.filter((s) => s.row === 3 || s.id.startsWith('add_carry_'));
+      expect(sumSteps.map((s) => ({ id: s.id, val: s.expectedValue }))).toEqual([
+        { id: 'sum_ones', val: 4 },
+        { id: 'sum_tens', val: 8 },
+        { id: 'add_carry_thousands', val: 1 },
+        { id: 'sum_hundreds', val: 4 },
+        { id: 'sum_thousands', val: 2 },
+      ]);
+    });
   });
 
   describe('Randomized Generative Tests (50 iterations each)', () => {

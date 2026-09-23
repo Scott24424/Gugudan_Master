@@ -498,13 +498,23 @@ export default function VerticalQuizScreen({ category, onBack }: VerticalQuizScr
                 </div>
 
                 {/* Addition Carry row if any */}
-                <div className="col-span-4 border-b-2 border-slate-400 my-1 relative">
-                  {getStep('add_carry_hundreds') && (
-                    <div className="absolute -top-3 left-1/4">
+                {(getStep('add_carry_thousands') || getStep('add_carry_hundreds') || getStep('add_carry_tens')) && (
+                  <>
+                    <div className="flex justify-center">
+                      {renderCell(getStep('add_carry_thousands')?.id, 'small', getStep('add_carry_thousands'))}
+                    </div>
+                    <div className="flex justify-center">
                       {renderCell(getStep('add_carry_hundreds')?.id, 'small', getStep('add_carry_hundreds'))}
                     </div>
-                  )}
-                </div>
+                    <div className="flex justify-center">
+                      {renderCell(getStep('add_carry_tens')?.id, 'small', getStep('add_carry_tens'))}
+                    </div>
+                    <div className="w-9 h-8" />
+                  </>
+                )}
+
+                {/* Divider 2 */}
+                <div className="col-span-4 border-b-4 border-slate-700 my-1" />
 
                 {/* 2x2 Row 3 Final Sum */}
                 <div className="flex justify-center">

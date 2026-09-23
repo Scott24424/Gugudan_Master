@@ -295,28 +295,43 @@ export function generateVerticalProblem(
     const valRow2 = topNumber * bottomTens * 10;
     const sum = valRow1 + valRow2;
 
-    // Ones
-    const sumOnes = sum % 10;
+    const add_r1_ones = valRow1 % 10;
+    const add_r2_ones = 0;
+    const add_r1_tens = Math.floor(valRow1 / 10) % 10;
+    const add_r2_tens = Math.floor(valRow2 / 10) % 10;
+    const add_r1_hundreds = Math.floor(valRow1 / 100) % 10;
+    const add_r2_hundreds = Math.floor(valRow2 / 100) % 10;
+    const add_r1_thousands = Math.floor(valRow1 / 1000) % 10;
+    const add_r2_thousands = Math.floor(valRow2 / 1000) % 10;
+
+    // 1. Ones column (e.g. 4 + 0 = 4)
+    const onesSum = add_r1_ones + add_r2_ones;
+    const addCarryTens = Math.floor(onesSum / 10);
+    if (addCarryTens > 0) {
+      steps.push({
+        id: 'add_carry_tens',
+        targetType: 'carry',
+        row: 2.5,
+        column: 'tens',
+        expectedValue: addCarryTens,
+      });
+    }
     steps.push({
       id: 'sum_ones',
       targetType: 'sum',
       row: 3,
       column: 'ones',
-      expectedValue: sumOnes,
+      expectedValue: onesSum % 10,
     });
 
-    // Tens
-    const r1_t = Math.floor(valRow1 / 10) % 10;
-    const r2_t = Math.floor(valRow2 / 10) % 10;
-    const tensSum = r1_t + r2_t;
+    // 2. Tens column (e.g. 4 + 4 = 8, or 7 + 8 = carry 1, 5)
+    const tensSum = add_r1_tens + add_r2_tens + addCarryTens;
     const addCarryHundreds = Math.floor(tensSum / 10);
-    const sumTens = tensSum % 10;
-
     if (addCarryHundreds > 0) {
       steps.push({
         id: 'add_carry_hundreds',
         targetType: 'carry',
-        row: 2,
+        row: 2.5,
         column: 'hundreds',
         expectedValue: addCarryHundreds,
       });
@@ -326,38 +341,38 @@ export function generateVerticalProblem(
       targetType: 'sum',
       row: 3,
       column: 'tens',
-      expectedValue: sumTens,
+      expectedValue: tensSum % 10,
     });
 
-    // Hundreds & Thousands
-    const r1_h = Math.floor(valRow1 / 100) % 10;
-    const r2_h = Math.floor(valRow2 / 100) % 10;
-    const hundredsSum = r1_h + r2_h + addCarryHundreds;
+    // 3. Hundreds column (e.g. 6 + 8 = carry 1, 4)
+    const hundredsSum = add_r1_hundreds + add_r2_hundreds + addCarryHundreds;
+    const addCarryThousands = Math.floor(hundredsSum / 10);
+    if (addCarryThousands > 0) {
+      steps.push({
+        id: 'add_carry_thousands',
+        targetType: 'carry',
+        row: 2.5,
+        column: 'thousands',
+        expectedValue: addCarryThousands,
+      });
+    }
+    steps.push({
+      id: 'sum_hundreds',
+      targetType: 'sum',
+      row: 3,
+      column: 'hundreds',
+      expectedValue: hundredsSum % 10,
+    });
 
+    // 4. Thousands column (e.g. 1 + carry 1 = 2)
+    const thousandsSum = add_r1_thousands + add_r2_thousands + addCarryThousands;
     if (sum >= 1000) {
-      const sumThousands = Math.floor(sum / 1000);
-      const sumHundreds = Math.floor((sum % 1000) / 100);
       steps.push({
         id: 'sum_thousands',
         targetType: 'sum',
         row: 3,
         column: 'thousands',
-        expectedValue: sumThousands,
-      });
-      steps.push({
-        id: 'sum_hundreds',
-        targetType: 'sum',
-        row: 3,
-        column: 'hundreds',
-        expectedValue: sumHundreds,
-      });
-    } else {
-      steps.push({
-        id: 'sum_hundreds',
-        targetType: 'sum',
-        row: 3,
-        column: 'hundreds',
-        expectedValue: hundredsSum,
+        expectedValue: thousandsSum,
       });
     }
   }
