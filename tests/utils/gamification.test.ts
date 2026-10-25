@@ -1,4 +1,10 @@
-import { calculateEarnedExp, calculateNextLevelAndExp, getCharacterStage } from '../../src/utils/gamification';
+import {
+  calculateEarnedExp,
+  calculatePerfectBonusExp,
+  calculateNextLevelAndExp,
+  getCharacterStage,
+  getCharacterStageInfo,
+} from '../../src/utils/gamification';
 
 describe('Gamification Logic', () => {
   describe('calculateEarnedExp', () => {
@@ -18,26 +24,49 @@ describe('Gamification Logic', () => {
     });
   });
 
-  describe('getCharacterStage', () => {
+  describe('calculatePerfectBonusExp', () => {
+    it('awards 20% bonus exp when 10 out of 10 questions are correct', () => {
+      expect(calculatePerfectBonusExp('gugudan', 10, 10)).toBe(20);
+      expect(calculatePerfectBonusExp('2x1', 10, 10)).toBe(40);
+      expect(calculatePerfectBonusExp('3x1', 10, 10)).toBe(60);
+      expect(calculatePerfectBonusExp('2x2', 10, 10)).toBe(80);
+    });
+
+    it('returns 0 when not all questions are correct or session has fewer than 10 questions', () => {
+      expect(calculatePerfectBonusExp('gugudan', 10, 9)).toBe(0);
+      expect(calculatePerfectBonusExp('2x1', 3, 3)).toBe(0);
+    });
+  });
+
+  describe('getCharacterStage & getCharacterStageInfo', () => {
     it('returns egg for level below 5', () => {
       expect(getCharacterStage(1)).toBe('egg');
       expect(getCharacterStage(4)).toBe('egg');
       expect(getCharacterStage(0)).toBe('egg');
+      expect(getCharacterStageInfo(1)).toEqual({
+        stage: 'egg',
+        emoji: '🥚',
+        name: '신비한 알',
+        nextEvolutionLevel: 5,
+      });
     });
 
     it('returns baby_monster for level between 5 and 9', () => {
       expect(getCharacterStage(5)).toBe('baby_monster');
       expect(getCharacterStage(9)).toBe('baby_monster');
+      expect(getCharacterStageInfo(5).emoji).toBe('🐣');
     });
 
     it('returns cool_monster for level between 10 and 19', () => {
       expect(getCharacterStage(10)).toBe('cool_monster');
       expect(getCharacterStage(19)).toBe('cool_monster');
+      expect(getCharacterStageInfo(12).emoji).toBe('🦕');
     });
 
     it('returns dragon for level 20 and above', () => {
       expect(getCharacterStage(20)).toBe('dragon');
       expect(getCharacterStage(99)).toBe('dragon');
+      expect(getCharacterStageInfo(25).nextEvolutionLevel).toBeNull();
     });
   });
 
@@ -55,16 +84,10 @@ describe('Gamification Logic', () => {
     });
 
     it('carries over surplus exp when leveling up', () => {
-      // 80 + 40 = 120 -> level up to 2, 20 exp remaining
       expect(calculateNextLevelAndExp(80, 1, 40)).toEqual({ exp: 20, level: 2 });
     });
 
     it('handles multi-level jump correctly', () => {
-      // Level 1 -> requires 100
-      // Level 2 -> requires 200
-      // 350 exp starting from 0, level 1:
-      // 350 - 100 = 250 (Lv 2)
-      // 250 - 200 = 50 (Lv 3)
       expect(calculateNextLevelAndExp(0, 1, 350)).toEqual({ exp: 50, level: 3 });
     });
 
@@ -74,4 +97,3 @@ describe('Gamification Logic', () => {
     });
   });
 });
-

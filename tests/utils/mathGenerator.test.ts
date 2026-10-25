@@ -1,4 +1,4 @@
-import { generateProblem } from '../../src/utils/mathGenerator';
+import { generateProblem, generateGugudanProblem } from '../../src/utils/mathGenerator';
 
 describe('Math Generator', () => {
   describe('gugudan (구구단)', () => {
@@ -17,6 +17,33 @@ describe('Math Generator', () => {
           expect(result.answer).toBe(a * b);
         }
       }
+    });
+
+    it('should filter problems to selectedDans when specified', () => {
+      for (let i = 0; i < 30; i++) {
+        const result = generateGugudanProblem({ selectedDans: [7, 8], mode: 'standard' });
+        expect([7, 8]).toContain(result.a);
+        expect(result.b).toBeGreaterThanOrEqual(1);
+        expect(result.b).toBeLessThanOrEqual(9);
+        expect(result.answer).toBe(result.a * result.b);
+        expect(result.questionType).toBe('standard');
+      }
+    });
+
+    it('should generate missing multiplier problems when mode is missing', () => {
+      for (let i = 0; i < 30; i++) {
+        const result = generateGugudanProblem({ selectedDans: [6], mode: 'missing' });
+        expect(result.a).toBe(6);
+        expect(result.questionType).toBe('missing_right');
+        expect(result.expression).toBe(`6 \\times □ = ${result.product}`);
+        expect(result.answer).toBe(result.b);
+      }
+    });
+
+    it('should fallback to all dans (2~9) if selectedDans is empty or invalid', () => {
+      const result = generateGugudanProblem({ selectedDans: [1, 15], mode: 'standard' });
+      expect(result.a).toBeGreaterThanOrEqual(2);
+      expect(result.a).toBeLessThanOrEqual(9);
     });
   });
 

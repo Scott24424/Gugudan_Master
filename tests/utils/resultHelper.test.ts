@@ -1,4 +1,9 @@
-import { calculateScore, getFeedbackMessage, QuizHistoryItem } from '../../src/utils/resultHelper';
+import {
+  calculateScore,
+  getFeedbackMessage,
+  analyzeLearningSessions,
+  QuizHistoryItem,
+} from '../../src/utils/resultHelper';
 
 describe('resultHelper', () => {
   describe('calculateScore', () => {
@@ -32,6 +37,15 @@ describe('resultHelper', () => {
         })),
       ];
       expect(calculateScore(history)).toBe(70);
+    });
+
+    it('calculates proportional 0-100 score for review sessions with fewer than 10 questions', () => {
+      const reviewHistory: QuizHistoryItem[] = [
+        { expression: '7 \\times 8', userAns: 56, realAns: 56, isCorrect: true },
+        { expression: '8 \\times 9', userAns: 72, realAns: 72, isCorrect: true },
+        { expression: '6 \\times 7', userAns: 42, realAns: 42, isCorrect: true },
+      ];
+      expect(calculateScore(reviewHistory)).toBe(100);
     });
 
     it('returns 0 when all answers are wrong', () => {
@@ -77,6 +91,41 @@ describe('resultHelper', () => {
 
       const fb0 = getFeedbackMessage(0);
       expect(fb0.title).toContain('수고했어요');
+    });
+  });
+
+  describe('analyzeLearningSessions', () => {
+    it('handles empty session list gracefully', () => {
+      const res = analyzeLearningSessions([]);
+      expect(res.totalSessions).toBe(0);
+      expect(res.averageAccuracy).toBe(0);
+      expect(res.recommendedCategory).toBe('gugudan');
+    });
+
+    it('aggregates category accuracy and recommends untried or weakest category', () => {
+      const res = analyzeLearningSessions([
+        { category: 'gugudan', total_questions: 10, correct_count: 10, earned_exp: 100 },
+        { category: '2x1', total_questions: 10, correct_count: 6, earned_exp: 120 },
+      ]);
+      expect(res.totalSessions).toBe(2);
+      expect(res.perfectSessions).toBe(1);
+      expect(res.totalEarnedExp).toBe(220);
+      expect(res.averageAccuracy).toBe(80);
+      expect(res.byCategory['gugudan'].accuracy).toBe(100);
+      expect(res.byCategory['2x1'].accuracy).toBe(60);
+      // 3x1 is untried
+      expect(res.recommendedCategory).toBe('3x1');
+    });
+
+    it('recommends weakest category when all categories have been tried', () => {
+      const res = analyzeLearningSessions([
+        { category: 'gugudan', total_questions: 10, correct_count: 10, earned_exp: 100 },
+        { category: '2x1', total_questions: 10, correct_count: 9, earned_exp: 180 },
+        { category: '3x1', total_questions: 10, correct_count: 7, earned_exp: 210 },
+        { category: '2x2', total_questions: 10, correct_count: 9, earned_exp: 360 },
+      ]);
+      expect(res.recommendedCategory).toBe('3x1');
+      expect(res.recommendationMessage).toContain('세자리 × 한자리');
     });
   });
 });

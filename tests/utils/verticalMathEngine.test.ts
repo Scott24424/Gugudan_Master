@@ -33,9 +33,6 @@ describe('verticalMathEngine', () => {
       const plan = generateVerticalProblem('2x2', { top: 34, bottom: 28 });
       expect(plan.answer).toBe(952);
 
-      // Row 1: 34 * 8 = 272 (carry 3, ones 2, hundreds 2, tens 7)
-      // Row 2: 34 * 2 = 68 (tens 8, hundreds 6)
-      // Row 3: 272 + 680 = 952 (sum ones 2, add carry 1, sum tens 5, sum hundreds 9)
       const stepValues = plan.steps.map((s) => s.expectedValue);
       expect(stepValues).toEqual([3, 2, 2, 7, 8, 6, 2, 1, 5, 9]);
     });
@@ -44,13 +41,6 @@ describe('verticalMathEngine', () => {
       const plan = generateVerticalProblem('2x2', { top: 92, bottom: 27 });
       expect(plan.answer).toBe(2484);
 
-      // Row 1: 92 * 7 = 644 (carry 1, ones 4, hundreds 6, tens 4)
-      // Row 2: 92 * 2 = 184 (tens 4, thousands 1, hundreds 8)
-      // Row 3: 644 + 1840 = 2484:
-      //   4 + 0 = 4 (sum_ones)
-      //   4 + 4 = 8 (sum_tens)
-      //   6 + 8 = 14 (add_carry_thousands 1, sum_hundreds 4)
-      //   1 + 1 = 2 (sum_thousands 2)
       const stepValues = plan.steps.map((s) => s.expectedValue);
       expect(stepValues).toEqual([1, 4, 6, 4, 4, 1, 8, 4, 8, 1, 4, 2]);
 
@@ -62,6 +52,16 @@ describe('verticalMathEngine', () => {
         { id: 'sum_hundreds', val: 4 },
         { id: 'sum_thousands', val: 2 },
       ]);
+    });
+
+    test('every generated step includes a non-empty Korean pedagogical hint', () => {
+      const plan = generateVerticalProblem('2x2', { top: 47, bottom: 36 });
+      for (const step of plan.steps) {
+        expect(typeof step.hint).toBe('string');
+        expect((step.hint ?? '').length).toBeGreaterThan(5);
+      }
+      expect(plan.steps[0].activeTopColumn).toBe('ones');
+      expect(plan.steps[0].activeBottomColumn).toBe('ones');
     });
   });
 
@@ -75,13 +75,11 @@ describe('verticalMathEngine', () => {
         expect(plan.bottomNumber).toBeLessThanOrEqual(9);
         expect(plan.answer).toBe(plan.topNumber * plan.bottomNumber);
 
-        // Every step value must be a single digit 0-9
         for (const step of plan.steps) {
           expect(step.expectedValue).toBeGreaterThanOrEqual(0);
           expect(step.expectedValue).toBeLessThanOrEqual(9);
         }
 
-        // Check reconstructed partial product
         const onesStep = plan.steps.find((s) => s.id === 'res_ones_r1');
         const tensStep = plan.steps.find((s) => s.id === 'res_tens_r1');
         const hundredsStep = plan.steps.find((s) => s.id === 'res_hundreds_r1');

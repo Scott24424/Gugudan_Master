@@ -20,6 +20,22 @@ export function calculateEarnedExp(category: string): number {
 }
 
 /**
+ * Calculates bonus experience points when a user achieves a perfect score on a full session (10+ questions).
+ * 왜 필요한가: 10문제 전승(100점 만점) 달성 시 추가 성취 동기를 부여하기 위해 기본 획득량의 20% 보너스를 지급함.
+ */
+export function calculatePerfectBonusExp(
+  category: string,
+  totalQuestions: number,
+  correctCount: number
+): number {
+  if (totalQuestions < 10 || correctCount < totalQuestions) {
+    return 0;
+  }
+  const perQuestion = calculateEarnedExp(category);
+  return Math.round(perQuestion * totalQuestions * 0.2);
+}
+
+/**
  * Determines the character growth stage according to current level.
  * Stages:
  * - Level < 5: 'egg'
@@ -41,6 +57,35 @@ export function getCharacterStage(level: number): string {
     return 'baby_monster';
   }
   return 'egg';
+}
+
+export interface CharacterStageInfo {
+  stage: string;
+  emoji: string;
+  name: string;
+  nextEvolutionLevel: number | null;
+}
+
+const STAGE_META: Record<string, { emoji: string; name: string; nextEvolutionLevel: number | null }> = {
+  egg: { emoji: '🥚', name: '신비한 알', nextEvolutionLevel: 5 },
+  baby_monster: { emoji: '🐣', name: '아기 몬스터', nextEvolutionLevel: 10 },
+  cool_monster: { emoji: '🦕', name: '멋쟁이 다이노', nextEvolutionLevel: 20 },
+  dragon: { emoji: '🐉', name: '전설의 드래곤', nextEvolutionLevel: null },
+};
+
+/**
+ * Returns unified character stage metadata (emoji, Korean name, next evolution level)
+ * to prevent duplicate mapping tables across UI components.
+ */
+export function getCharacterStageInfo(level: number): CharacterStageInfo {
+  const stage = getCharacterStage(level);
+  const meta = STAGE_META[stage] ?? STAGE_META.egg;
+  return {
+    stage,
+    emoji: meta.emoji,
+    name: meta.name,
+    nextEvolutionLevel: meta.nextEvolutionLevel,
+  };
 }
 
 /**
@@ -70,4 +115,3 @@ export function calculateNextLevelAndExp(
 
   return { exp, level };
 }
-

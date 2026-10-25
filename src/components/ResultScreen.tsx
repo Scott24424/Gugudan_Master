@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, XCircle, RotateCcw, Home, Sparkles, Award } from 'lucide-react';
-import { getFeedbackMessage } from '../utils/resultHelper';
+import { CheckCircle2, XCircle, RotateCcw, Home, Sparkles, Award, Flame } from 'lucide-react';
+import { calculateScore, getFeedbackMessage } from '../utils/resultHelper';
+import { getCharacterStageInfo } from '../utils/gamification';
 
 export interface HistoryItem {
   expression: string;
@@ -15,7 +16,11 @@ export interface HistoryItem {
 export interface ResultScreenProps {
   history: HistoryItem[];
   totalExp: number;
+  bonusExp?: number;
+  previousLevel?: number;
+  currentLevel?: number;
   onRetry: () => void;
+  onReviewWrong?: () => void;
   onHome: () => void;
 }
 
@@ -41,20 +46,31 @@ const CONFETTI_PIECES = [
 export default function ResultScreen({
   history,
   totalExp,
+  bonusExp = 0,
+  previousLevel,
+  currentLevel,
   onRetry,
+  onReviewWrong,
   onHome,
 }: ResultScreenProps) {
-  const correctCount = history.filter(item => item.isCorrect).length;
-  const score = correctCount * 10;
+  const totalQuestions = history.length;
+  const correctCount = history.filter((item) => item.isCorrect).length;
+  const wrongCount = totalQuestions - correctCount;
+  const score = calculateScore(history);
   const feedback = getFeedbackMessage(score);
-  const isPerfect = score === 100;
+  const isPerfect = score === 100 && totalQuestions > 0;
+  const didLevelUp =
+    typeof previousLevel === 'number' &&
+    typeof currentLevel === 'number' &&
+    currentLevel > previousLevel;
+
+  const newStageInfo = currentLevel ? getCharacterStageInfo(currentLevel) : null;
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-3xl shadow-xl border-4 border-sky-200 relative overflow-hidden">
       {/* Celebration Fireworks & Confetti for 100 Score */}
       {isPerfect && (
         <div className="absolute inset-0 pointer-events-none overflow-hidden z-20 flex items-center justify-center">
-          {/* Expanding shockwave bursts */}
           <motion.div
             initial={{ scale: 0.2, opacity: 0.8 }}
             animate={{ scale: [0.2, 1.8, 2.4], opacity: [0.8, 0.4, 0] }}
@@ -68,8 +84,7 @@ export default function ResultScreen({
             className="w-48 h-48 rounded-full border-4 border-pink-400 absolute"
           />
 
-          {/* Confetti pieces shooting outward and floating */}
-          {CONFETTI_PIECES.map(p => (
+          {CONFETTI_PIECES.map((p) => (
             <motion.div
               key={p.id}
               initial={{ opacity: 1, x: 0, y: 0, scale: 0, rotate: 0 }}
@@ -102,9 +117,7 @@ export default function ResultScreen({
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
           className="inline-block relative mb-2"
         >
-          <div className="text-7xl filter drop-shadow-md select-none">
-            {feedback.emoji}
-          </div>
+          <div className="text-7xl filter drop-shadow-md select-none">{feedback.emoji}</div>
           {isPerfect && (
             <motion.div
               animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
@@ -116,21 +129,37 @@ export default function ResultScreen({
           )}
         </motion.div>
 
-        <h2 className="text-2xl font-black text-slate-800 mb-1">
-          {feedback.title}
-        </h2>
-        <p className="text-slate-500 text-sm font-medium mb-4">
-          {feedback.subtitle}
-        </p>
+        <h2 className="text-2xl font-black text-slate-800 mb-1">{feedback.title}</h2>
+        <p className="text-slate-500 text-sm font-medium mb-4">{feedback.subtitle}</p>
+
+        {/* Level Up Celebration Banner */}
+        {didLevelUp && newStageInfo && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-3 p-3 rounded-2xl bg-gradient-to-r from-amber-100 via-yellow-100 to-orange-100 border-2 border-amber-300 text-amber-900 shadow-sm"
+          >
+            <div className="text-sm font-black flex items-center justify-center gap-1.5">
+              <span>🎊 레벨 업!</span>
+              <span>
+                Lv.{previousLevel} ➔ Lv.{currentLevel}
+              </span>
+              <span>({newStageInfo.emoji} {newStageInfo.name})</span>
+            </div>
+          </motion.div>
+        )}
 
         {/* Score & EXP Banner */}
         <div className="grid grid-cols-2 gap-3 p-3 bg-gradient-to-r from-sky-50 to-indigo-50 rounded-2xl border-2 border-sky-100">
           <div className="text-center">
             <div className="text-xs text-slate-500 font-semibold mb-0.5">최종 점수</div>
             <div className="text-3xl font-black text-indigo-700">
-              {score}<span className="text-base font-bold text-indigo-500 ml-1">점</span>
+              {score}
+              <span className="text-base font-bold text-indigo-500 ml-1">점</span>
             </div>
-            <div className="text-xs text-indigo-400 font-medium">10문제 중 {correctCount}개 정답</div>
+            <div className="text-xs text-indigo-400 font-medium">
+              {totalQuestions}문제 중 {correctCount}개 정답
+            </div>
           </div>
 
           <div className="text-center border-l-2 border-sky-100">
@@ -139,9 +168,9 @@ export default function ResultScreen({
               <span>+{totalExp}</span>
               <span className="text-base font-bold text-orange-400 ml-0.5">EXP</span>
             </div>
-            <div className="text-xs text-orange-400 font-medium flex items-center justify-center gap-1">
+            <div className="text-xs text-orange-500 font-semibold flex items-center justify-center gap-1">
               <Award className="w-3.5 h-3.5 inline" />
-              성장 레벨 업!
+              {bonusExp > 0 ? `만점 보너스 +${bonusExp} 포함!` : '성장 경험치 획득!'}
             </div>
           </div>
         </div>
@@ -157,6 +186,7 @@ export default function ResultScreen({
         <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
           {history.map((item, index) => {
             const formattedExpr = item.expression.replace(/\\times/g, '×');
+            const hasEqualSign = formattedExpr.includes('=');
 
             return (
               <div
@@ -179,11 +209,14 @@ export default function ResultScreen({
                   </span>
                   <div>
                     <div className="font-bold text-slate-800 text-base">
-                      {formattedExpr} = {item.isCorrect ? item.userAns : item.realAns}
+                      {hasEqualSign
+                        ? formattedExpr.replace('□', `[${item.realAns}]`)
+                        : `${formattedExpr} = ${item.isCorrect ? item.userAns : item.realAns}`}
                     </div>
                     {!item.isCorrect && (
                       <div className="text-xs text-rose-600 font-medium">
-                        내 답: <span className="line-through">{item.userAns}</span> (정답: {item.realAns})
+                        내 답: <span className="line-through">{item.userAns}</span> (정답:{' '}
+                        {item.realAns})
                       </div>
                     )}
                   </div>
@@ -204,7 +237,19 @@ export default function ResultScreen({
 
       {/* Navigation Buttons */}
       <div className="flex flex-col gap-3 relative z-10">
+        {wrongCount > 0 && onReviewWrong && (
+          <button
+            type="button"
+            onClick={onReviewWrong}
+            className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-4 px-4 rounded-2xl shadow-[0_6px_0_0_#b45309] hover:translate-y-0.5 hover:shadow-[0_3px_0_0_#b45309] active:translate-y-1.5 active:shadow-none transition-all flex items-center justify-center gap-2 text-lg"
+          >
+            <Flame className="w-5 h-5" />
+            💪 틀린 문제만 다시 풀기 ({wrongCount}문제)
+          </button>
+        )}
+
         <button
+          type="button"
           onClick={onRetry}
           className="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-4 px-4 rounded-2xl shadow-[0_6px_0_0_#0284c7] hover:translate-y-0.5 hover:shadow-[0_3px_0_0_#0284c7] active:translate-y-1.5 active:shadow-none transition-all flex items-center justify-center gap-2 text-lg"
         >
@@ -212,6 +257,7 @@ export default function ResultScreen({
           다시 풀기
         </button>
         <button
+          type="button"
           onClick={onHome}
           className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 px-4 rounded-2xl shadow-[0_6px_0_0_#cbd5e1] hover:translate-y-0.5 hover:shadow-[0_3px_0_0_#cbd5e1] active:translate-y-1.5 active:shadow-none transition-all flex items-center justify-center gap-2 text-base"
         >
